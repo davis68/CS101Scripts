@@ -11,7 +11,7 @@ via a notebook by Aniriduh Madhusadan for CS 101.
 Current version by Neal Davis.
 '''
 
-exam_path = './exam1.csv'
+exam_path = './exam0.csv'
 exclude_list = [ 'davis68','gwang10','ruchark2','brahma2','hychen2','hcheng17','lunanli3','shubham9','xyu37','agmishr2','xtang13' ]
 
 import numpy as np
