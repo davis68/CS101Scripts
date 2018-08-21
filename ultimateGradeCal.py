@@ -3,53 +3,8 @@ import glob, sys
 import string
 from nbgrader.api import Gradebook
 
-def getCollabs(labNo):
-    collabs = {} # to return
-    files = glob.glob("submitted/*/lab"+labNo+"/lab"+labNo+".ipynb")
-    from string import whitespace as w
-    from string import punctuation as p
-    from string import printable
-    featureTxt = "Double-click here to list collaborators' or partners' **NetIDs** here:"
-    for f in files:
-        with open(f) as openF:
-            data = openF.read()
-            cell=data[data.find(featureTxt):data.find('lab'+labNo)]
-            names=cell[len(featureTxt):cell.find(']')][:-1]
-            label='write them here'
-            if label in names:
-                names=names[names.find(label)+ len(label) :]
-            for c in w + p:
-                names = names.replace(c, " ")       
-            names = names.split(' ')
-            names = [x for x in names if x != '']
-            collabsList = ' '.join(names)
-            sanitized=""
-            for letter in collabsList:
-                if letter in printable:
-                    sanitized+=letter
-            submitter = f.split("/")[1]
-            collabsList = sanitized.split(' ')
-            for i in range(len(collabsList)):
-                collabsList[i] = collabsList[i].strip()
-            collabs[submitter] = collabsList
-    return collabs
+from getCollabs import getCollabs
 
-'''
-No longer need to generate extract_grades file.
-'''
-def getGrade(section,labNo):
-    # labSec = sys.argv[1]
-    labSec = "AY"+section
-    gb = Gradebook('sqlite:////class/cs101/grading/'+labSec+'/gradebook.db')
-    ourIds = []
-    aNo = "lab" + labNo
-    grades = {}
-    #print (gb.assignment_submissions)
-    for s in gb.assignment_submissions(aNo):
-        if s.student_id not in ourIds:
-            grades[s.student_id] = s.score
-            # print(s.student_id, s.score)#, s.timestamp.isoformat())
-    return grades
 '''
 getGradeFromFile(filename) opens a file given by extract_grades.py
 in the format where each line is
@@ -64,7 +19,7 @@ def getGradeFromFile(filename):
             grades[line[0]] = float(line[1])
         collabs = {}
         if len(sys.argv)==5: # Using collabs
-            collabs = getCollabs(sys.argv[4])
+            collabs = getCollabs(sys.argv[3], sys.argv[4])
         for submitter in collabs:
             netidlist = collabs [submitter]
             if submitter in grades: # They should be, if not, print error I guess
@@ -99,9 +54,13 @@ def getCollabsFromFile(filename):
     return collabs
 
 def parseGrades(grades):
-    format = {4.0:2.0, 3.0:1.5,2.0:1.5,1.0:1.3}
-    for key in grades:
-        grades[key] = format[float(grades[key])]
+    maxGrade = grades[max(grades, key=grades.get)]
+    if maxGrade != 0:
+        for key, value in grades.items():
+            grades[key] = value / maxGrade * 2.0
+    else:
+        for key, value in grades.items():
+            grades[key] = 2.0
     return grades
 
 def parseCollabs(content, collabs,colNo):
@@ -111,56 +70,80 @@ def parseCollabs(content, collabs,colNo):
     for collab in collabs:
         for word in collabs[collab]:
             if word in content:
+                # print (word, collab)
                 if content[word][colNo]!='':
                     if float(content[word][colNo])>float(content[collab][colNo]):
                         content[collab][colNo] = content[word][colNo]
                         continue
-                else:
-                    content[word][colNo] = content[collab][colNo] = "2.0" #unable it so that everyone gets 2.0
+                    else:
+                        content[word][colNo] = content[collab][colNo] = "2.0" #unable it so that everyone gets 2.0
                 # print(content[word][colNo],content[collab][colNo])
+import argparse
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Extract grades from NB grader and output compass compatible csv files.')
+    parser.add_argument('csv', metavar='gc...csv', nargs='?', help='csv downloaded from Compass (comma separated)')
+    parser.add_argument('section', metavar='{A-Q}', nargs='?', help='section names (multiple supported)')
+    parser.add_argument('no' , metavar='XX', nargs='?', help='labNo')
+    parser.add_argument('-c', '--collabs', metavar="Y/N", nargs = '?', help = "Fetch collaborator information", default="Y")
+    parser.add_argument('-o', '--output', metavar = 'output', nargs = '?', help = 'csv file to upload to compass', default = sys.stdout)
 
-
-if len(sys.argv)<4:
-    print ("Usage: python csvUpdater.py compassScores.csv labSec({A,B,..,Q}) labNo({00,01...15}) [collabs:Y/N]")
-    exit(1)
-csvfilename = sys.argv[1]
-labSec = sys.argv[2]
-aNo = sys.argv[3]
-grades = getGrade(labSec,aNo)
-# print (grades)
-
-grades = parseGrades(grades)
-
-collabs = {}
-if len(sys.argv)==5:
-    collabs = getCollabs(aNo)
-    # print (collabs)
-with open(csvfilename,'r') as f:
-    fileContent = f.readlines()
-    headers = fileContent[0].strip().split(',')
-    colNo = 0
-    netidNo = 0
-    fileOutput = {} # dict of lists
-    for i in range(len(headers)):
-        # print(str(aNo[3:]))
-        if headers[i].find("lab "+str(aNo))>-1:
-            colNo = i
-        if headers[i].find("Username")>-1:
-            netidNo = i
-    for line in fileContent[1:]:
-        line = line.strip().split(',')
-        netid = line[netidNo].strip('"')
-        # print (netid)
-        if netid in grades:
-            line[colNo] = str(grades[netid])
-            # print (line[colNo])
-            fileOutput[netid]=(line.copy())
-        else:
-            fileOutput[netid]=(line.copy())
-    parseCollabs(fileOutput, collabs,colNo)
-    print (fileContent[0].strip())
-    # print (fileOutput)
-    for netid in fileOutput:
-        line = ','.join(fileOutput[netid])
-        print (line)
+    args = parser.parse_args()
+    csvfilename = args.csv
+    labSec = args.section
+    aNo = args.no if len(args.no) == 2 else '0' + args.no
+    sys.stdout = open(args.output, 'w') if args.output != sys.stdout else sys.stdout
+    from extract_grades import extract_grades
+    grades = {}
+    for labSecChar in labSec:
+        grades.update(extract_grades(labSecChar,aNo))
+    # from getValue0 import getHw1Score
+    # grades = getHw1Score()
+    # print (grades)
+    
+    # from lab01grades import lab01grades
+    # grades = lab01grades
+    grades = parseGrades(grades)
+    collabs = {}
+    if args.collabs == 'Y':
+        for labSecChar in labSec:
+            collabs.update(getCollabs(labSecChar,aNo))
+        # print (collabs)
+    with open(csvfilename,'r') as f:
+        fileContent = f.readlines()
+        headers = fileContent[0].strip().split(',')
+        colNo = -1
+        netidNo = -1
+        sectionNo = -1
+        availNo = -1
+        fileOutput = {} # dict of lists
+        for i in range(len(headers)):
+            if headers[i].find("lab"+str(aNo))>-1:
+                colNo = i
+            if headers[i].find("Username")>-1:
+                netidNo = i
+            if headers[i].find("Section")>-1:
+                sectionNo = i
+            if headers[i].find("Availability")>-1:
+                availNo = i
+        if colNo == -1 or netidNo == -1 or sectionNo == -1:
+            raise ValueError("CSV file doesn't have all necessary columns.")          
+        for line in fileContent[1:]:
+            line = line.strip().split(',')
+            netid = line[netidNo].strip('"')
+            # print (netid)
+            if netid in grades:
+                line[colNo] = str(grades[netid])
+                # print (line[colNo])
+                fileOutput[netid]=(line.copy())
+            else:
+                line[colNo] = '0' # Set empty ones to 0
+                fileOutput[netid]=(line.copy())
+        parseCollabs(fileOutput, collabs,colNo)
+        print (headers[netidNo]+','+headers[colNo])
+        for netid in fileOutput:
+            section = fileOutput[netid][sectionNo].strip()[-2]
+            if section in labSec: # and fileOutput[netid][availNo].find('Yes')>-1:
+                line = ','.join([fileOutput[netid][netidNo], fileOutput[netid][colNo]])
+                # line = ','.join(fileOutput[netid])
+                print (line)
 
