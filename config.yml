@@ -1,0 +1,12 @@
+# -*- coding: utf-8 -*-
+
+# "python3 ultimateGradeCal.py -c Y ../gc_cs_101_120188_165688_svdownload_2018-09-20-13-56-12.xls  C 2
+
+{
+  'gradebookDB': 'sqlite:////home/davis68/code/CS101Scripts/gradebook.db',
+  'rosterFile': 'gc_cs_101_120188_165688_column_2018-09-20-15-44-27.xls',
+  'section': 'AYA',
+  'scale': 2.0,
+  'debug': true,
+  'outputFile': 'gc_cs_101_120188_165688_fullgc_2018-09-20-16-32-30.xls'
+}
