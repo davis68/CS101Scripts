@@ -44,7 +44,7 @@ def getCollabs(labSec, labNo):
     '''
     import glob
     import json
-    import path
+    import os
     import sys
 
     collabs = {}
@@ -62,16 +62,20 @@ def getCollabs(labSec, labNo):
 
         # Locate collaborator label.  The collaborators are listed in the next cell.
         for cell in data[ 'cells' ][ 0:12 ]:
-            if collabsLabel in cell['source'][ 0 ]:
+            if collabsLabel in cell[ 'source' ][ 0 ]:
+                print( cell[ 'source' ][ 0 ] )
                 break
-        collabCell = data[ 'cells' ][ data[ 'cells' ].index( cell ) + 1 ]
+        try:
+            collabCell = data[ 'cells' ][ data[ 'cells' ].index( cell ) ]
+        except IndexError:
+            collabCell = { 'source':[] }
 
         # Parse out collaborators, which may be raw names or strings.
         if len( collabCell[ 'source' ] ) < 1:
             # No collaborators have been listed.
             break
 
-        names = collabCell[ 'source' ]
+        names = collabCell[ 'source' ][ 0 ]
         for c in w + p:
             names = names.replace( c,' ' )
         nameList = names.split()
@@ -81,7 +85,7 @@ def getCollabs(labSec, labNo):
         nameList = [ name.strip( '"' ) for name in names ]
 
         collabsList = ''.join( names ).split()
-        submitter = os.path.split( file )[ -3 ]
+        submitter = os.path.split( os.path.split( os.path.split( file )[ 0 ] )[ 0 ] )[ -1 ]
         collabs[ submitter ] = collabsList
     return collabs
 
@@ -141,10 +145,9 @@ def writeGradesOut( grades,labNo,collabs,outputFileName ):
     '''
     import pandas as pd
 
-    try:
+    df = pd.read_csv( outputFileName,encoding='utf-16',delimiter=',' )
+    if df.shape[ 1 ] == 1:    
         df = pd.read_csv( outputFileName,encoding='utf-16',delimiter='\t' )
-    except TypeError:
-        df = pd.read_csv( outputFileName,encoding='utf-16',delimiter=',' )
     df = df.set_index( 'Username',drop=False )
 
     for column in df.columns:
@@ -159,6 +162,7 @@ def writeGradesOut( grades,labNo,collabs,outputFileName ):
                 df.loc[ collab ][ column ] = grades[ student ]
 
     df.to_csv( outputFileName,encoding='utf-16' )
+
 
 def main():
     # Read in configuration. ###################################################
@@ -181,7 +185,7 @@ def main():
 
     # Identify collaborators. ##################################################
     collabs = {}
-    if args.collabs == 'Y':
+    if args.collabs.upper() == 'Y':
         collabs.update( getCollabs( labSec,labNo ) )
     if config[ 'debug' ]: print( collabs )
 
