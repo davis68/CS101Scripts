@@ -141,7 +141,10 @@ def writeGradesOut( grades,labNo,collabs,outputFileName ):
     '''
     import pandas as pd
 
-    df = pd.read_csv( outputFileName,encoding='utf-16',delimiter='\t' )
+    try:
+        df = pd.read_csv( outputFileName,encoding='utf-16',delimiter='\t' )
+    except TypeError:
+        df = pd.read_csv( outputFileName,encoding='utf-16',delimiter=',' )
     df = df.set_index( 'Username',drop=False )
 
     for column in df.columns:
@@ -150,12 +153,12 @@ def writeGradesOut( grades,labNo,collabs,outputFileName ):
 
     for student in grades:
         #print( student,grades[ student ] )
-        df.loc[ student ][ column ] = grades[ student ]
+        df.loc[ student,column ] = grades[ student ]
         if student in collabs:
             for collab in collabs[ student ]:
                 df.loc[ collab ][ column ] = grades[ student ]
 
-    df.to_csv( outputFileName )
+    df.to_csv( outputFileName,encoding='utf-16' )
 
 def main():
     # Read in configuration. ###################################################
