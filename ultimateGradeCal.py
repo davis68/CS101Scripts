@@ -61,12 +61,17 @@ def getCollabs(labSec, labNo):
         data = json.load( open( file ) )
 
         # Locate collaborator label.  The collaborators are listed in the next cell.
-        for cell in data[ 'cells' ][ 0:12 ]:
-            if collabsLabel in cell[ 'source' ][ 0 ]:
-                print( cell[ 'source' ][ 0 ] )
-                break
         try:
-            collabCell = data[ 'cells' ][ data[ 'cells' ].index( cell ) ]
+            for cell in data[ 'cells' ][ 0:12 ]:
+                if collabsLabel in cell[ 'source' ][ 0 ]:
+                    #print( cell[ 'source' ][ 0 ] )
+                    break
+        except IndexError:
+            break
+                
+        #print( data[ 'cells' ][ data[ 'cells' ].index( cell ) + 1 ] )
+        try:
+            collabCell = data[ 'cells' ][ data[ 'cells' ].index( cell ) + 1 ]
         except IndexError:
             collabCell = { 'source':[] }
 
@@ -88,23 +93,6 @@ def getCollabs(labSec, labNo):
         submitter = os.path.split( os.path.split( os.path.split( file )[ 0 ] )[ 0 ] )[ -1 ]
         collabs[ submitter ] = collabsList
     return collabs
-
-
-def parseCollabs(content, collabs,colNo):
-    if len(collabs)==0:
-        pass
-    # print (collabs)
-    for collab in collabs:
-        for word in collabs[collab]:
-            if word in content:
-                # print (word, collab)
-                if content[word][colNo]!='':
-                    if float(content[word][colNo])>float(content[collab][colNo]):
-                        content[collab][colNo] = content[word][colNo]
-                        continue
-                    else:
-                        content[word][colNo] = content[collab][colNo] = "2.0" #unable it so that everyone gets 2.0
-                # print(content[word][colNo],content[collab][colNo])
 
 
 def parseArguments():
@@ -155,11 +143,14 @@ def writeGradesOut( grades,labNo,collabs,outputFileName ):
             break
 
     for student in grades:
-        #print( student,grades[ student ] )
-        df.loc[ student,column ] = grades[ student ]
-        if student in collabs:
-            for collab in collabs[ student ]:
-                df.loc[ collab ][ column ] = grades[ student ]
+        try:
+            #print( student,grades[ student ] )
+            df.loc[ student,column ] = grades[ student ]
+            if student in collabs:
+                for collab in collabs[ student ]:
+                    df.loc[ collab,column ] = grades[ student ]
+        except KeyError:
+            pass
 
     df.to_csv( outputFileName,encoding='utf-16' )
 
