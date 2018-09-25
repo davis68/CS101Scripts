@@ -78,7 +78,7 @@ def getCollabs(labSec, labNo):
         # Parse out collaborators, which may be raw names or strings.
         if len( collabCell[ 'source' ] ) < 1:
             # No collaborators have been listed.
-            break
+            continue
 
         names = collabCell[ 'source' ][ 0 ]
         for c in w + p:
