@@ -144,15 +144,16 @@ def writeGradesOut( grades,labNo,collabs,outputFileName ):
 
     for student in grades:
         try:
-            #print( student,grades[ student ] )
             df.loc[ student,column ] = grades[ student ]
             if student in collabs:
+                #print( student,collabs[student] )
                 for collab in collabs[ student ]:
+                    #print( collab,grades[ student ] )
                     df.loc[ collab,column ] = grades[ student ]
         except KeyError:
             pass
 
-    df.to_csv( outputFileName,encoding='utf-16' )
+    df.to_csv( outputFileName,encoding='utf-16',index=False )
 
 
 def main():
