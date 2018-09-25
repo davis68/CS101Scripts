@@ -148,6 +148,7 @@ def writeGradesOut( grades,labNo,collabs,outputFileName ):
             if student in collabs:
                 #print( student,collabs[student] )
                 for collab in collabs[ student ]:
+                    if collab == '': continue
                     #print( collab,grades[ student ] )
                     df.loc[ collab,column ] = grades[ student ]
         except KeyError:
