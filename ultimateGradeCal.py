@@ -67,7 +67,7 @@ def getCollabs(labSec, labNo):
                     #print( cell[ 'source' ][ 0 ] )
                     break
         except IndexError:
-            break
+            pass
                 
         #print( data[ 'cells' ][ data[ 'cells' ].index( cell ) + 1 ] )
         try:
