@@ -152,6 +152,7 @@ def writeGradesOut( grades,labNo,collabs,outputFileName ):
                     #print( collab,grades[ student ] )
                     df.loc[ collab,column ] = grades[ student ]
         except KeyError:
+            print("Invalid student key in collabs, skipping this row.")
             pass
 
     df.to_csv( outputFileName,encoding='utf-16',index=False )
